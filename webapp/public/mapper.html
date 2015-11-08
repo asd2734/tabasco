@@ -1,0 +1,194 @@
+<html>
+<head>
+	<script src="http://code.jquery.com/jquery-latest.js"></script>
+	<script src="bootstrap/bootstrap.min.js"></script>
+	<link rel="stylesheet" href="bootstrap/bootstrap.min.css">
+	<script src="spot.js"></script>
+	<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?libraries=places&sensor=false"></script>
+	<style>
+		#googleCredits{
+			position: fixed;
+			bottom: 0px;
+			left: 0px;
+			border-left: 2px solid black;
+			padding: 2px;
+			margin: 10px;
+		}
+		#mapHolder{
+			display: none;
+		}
+
+		#searchBar{
+			position: fixed;
+			left: 25%;
+			bottom: 5px;
+			width: 50%;
+			padding: 20px 10px;
+			opacity: 0.25;
+			border-radius: 0px;
+			color: white;
+			background-color: black;
+			-webkit-transition: 0.5s ease opacity;
+		}
+		#searchBar:focus{
+			opacity: 0.8;
+		}
+		#map{
+			position: fixed;
+			top: 0;
+			left: 0;
+			z-index: -1;
+		}
+
+		.home{
+			background-color: black;
+			color: white;
+			text-align: center;
+		}
+		#helpButton, #logoutButton{
+			position: absolute;
+			top: 5px;
+			padding: 4px 8px;
+			background-color:lightgray;
+			color: white;
+			font-size: 13px;
+		}
+		#helpButton:hover, #logoutButton:hover{
+			background-color: gray;
+		}
+		.place {
+			cursor: pointer;
+		}
+	</style>
+</head>
+<body style="margin:0">
+	<canvas id="map"></canvas>
+	<input type="text" id="searchBar" placeholder="plot"></input>
+	<img id="googleCredits" src="powered-by-google.png" alt="powered by Google">
+	<div id="logoutButton" style="right:50px;">
+		logout
+	</div>
+	<div id="helpButton" style="right:105px;">
+		about
+	</div>
+
+	<div id="mapHolder"></div>
+
+	<script type="text/javascript">
+		//canvas /window setup
+		var canvas = document.getElementById("map");
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		var ctx = canvas.getContext("2d");
+		rescaleMap(0.015);
+		var home = new Dot(30, window.innerWidth/2 - 30, window.innerHeight/2 - 30);
+		home.innerHTML = "<br>HOME";
+		home.className = "home";
+		home.style.backgroundColor = "black";
+
+		//Maps API setup
+		var origin = new google.maps.LatLng(40.1097573, -88.2272623);
+		var map = new google.maps.Map(document.getElementById('mapHolder'), {
+	      center: origin,
+	      zoom: 15
+	    });
+
+		//Given a query, and optional radius,
+		//returns an array of place data from Google Maps API
+		function getPlaces (q, callback, rad) {
+			var request = {
+			    location: origin,
+			    radius: rad || '700',
+				query: q
+			};
+
+			var service = new google.maps.places.PlacesService(map);
+			service.textSearch(request, callback);
+		}
+
+		//process place data
+		function processPlaces (data) {
+			console.log(data);
+
+			//clear canvas
+			ctx.clearRect(0,0,window.innerWidth, window.innerHeight);
+			$('.place').remove();
+
+			var lastLoc = convertLatlongToCoords(origin);
+			for (var i = data.length - 1; i >= 0; i--) {
+				var loc = data[i].geometry.location;
+				var windowPos = convertLatlongToCoords(loc);
+				// $('body').append(windowPos.x + ", " + windowPos.y + " - " + data[i].name + ": " + data[i].rating + "<br>");
+				var p = new Box(Math.random()*10+10, windowPos.x+(window.innerWidth/2), windowPos.y+(window.innerHeight/2));
+				p.textContent = data[i].name;
+				p.className = "place";
+				var bb = Math.floor(Math.random()*180);
+				p.style.backgroundColor = "rgb("+bb+", "+bb+", "+bb+")";
+
+				$(p).hide().delay(100*(data.length - i)).fadeIn();
+
+				$(p).click(function () {
+					window.location = '/';
+				})
+
+				ctx.beginPath();
+			    ctx.moveTo(lastLoc.x + window.innerWidth/2, lastLoc.y);
+			    ctx.lineTo(windowPos.x + window.innerWidth/2, windowPos.y);
+			    console.log("line from "+lastLoc.x+", "+lastLoc.y+" to "+windowPos.x+", "+windowPos.y);
+			    ctx.stroke();
+			    // ctx.closePath();
+				lastLoc = windowPos;
+			};
+		}
+
+		//scales the map zoom by a proportion
+		function zoom(scale){
+			scale = scale || 0.95;
+			rescaleMap(scale * window.latWidth);
+		}
+
+		//width defines the window's width in degrees of latitude
+		function rescaleMap (width) {
+			window.latWidth = width;
+			window.latHeight = window.latWidth * (window.innerHeight / window.innerWidth);	
+		}
+
+		//converts LatLong to window coordinates
+		//Given an object whose [d] = lat, [e] = long
+		function convertLatlongToCoords(latlong){
+			var objLat, objLong;
+			if (arguments.length == 1){				//latlong object
+				objLat = latlong["d"];
+				objLong = latlong["e"];
+			} else if (arguments.length == 2){		//lat, long 2 args
+				objLat = arguments[0];
+				objLong = arguments[1];
+			}
+
+			var x = (window.innerHeight/2) + window.innerHeight*(objLong - origin.e) / window.latHeight;
+			var y = (window.innerWidth/2) + window.innerWidth*(objLat - origin.d) / window.latWidth;
+			return {
+				"x": x,
+				"y": y,
+			}
+		}
+
+		//parallax mouse movement
+		document.onmousemove = function(e){
+			canvas.style.left = (e.pageX/window.innerWidth)*50 + "px";
+			canvas.style.top = (e.pageY/window.innerHeight)*50 + "px";
+		};
+
+		//triggers a search on submission from search bar
+		$("#searchBar").keypress(function(e) {
+		    if(e.which == 13) {
+		    	getPlaces($('#searchBar').val(), processPlaces);
+		    }
+		});
+		
+		
+
+		
+	</script>
+</body>
+</html>
