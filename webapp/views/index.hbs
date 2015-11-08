@@ -1,0 +1,58 @@
+<h1>Human Facial Image Labeling</h1>
+<form id="submitform">
+    <div class="container"></div>
+    <input type="submit" class="submitbutton">
+</form>
+
+
+<script type="text/javascript">
+    var scope = {};
+    var $con = $('.container');
+    var imgStr = 
+        "<div class='option-group'>" +
+            "<img src='<%= imgurl %>' width='140' /><br>" +
+            "<span class='option'>Distress? <input type='checkbox' name='distress' value='true'></span>" +
+            "<span class='option remove'>&times;</span>" +
+        "</div>";
+    var imgTmp = _.template(imgStr);
+    $.getJSON('/images', function (data) {
+        data.forEach(function (url) {
+            $con.append(imgTmp({imgurl: url}));
+        });
+
+        scope.data = data;
+    });
+
+    $con.on('click', '.remove', function (e) {
+        $(this).parent().addClass('hidden');
+    });
+
+    $('#submitform').submit(function (e) {
+        e.preventDefault();
+
+        var values = $.makeArray($('[type=checkbox]')).map(function(e, i){
+            var good = !!(e.checked && !$($('.option-group')[i]).hasClass('hidden'));
+            return good ? 1 : 0;
+        });
+
+        scope.values = values;
+        var data = _.zip(scope.data, values)
+            .filter(function (el, i) {
+                return !$($('.option-group')[i]).hasClass('hidden');
+            });
+        console.log(data)
+
+        var result = data.map(function (el) {
+            return el.join(' ');
+        });
+
+        $.ajax({
+            url: '/labels', 
+            type: 'post',
+            data: {'result': result},
+            dataType: 'json'
+        }, function () {
+            console.log('Done.')
+        });
+    });
+</script>

@@ -1,0 +1,54 @@
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+.option-group {
+    background-color: lightgray;
+    display: inline-block;
+    margin: 5px;
+    padding: 5px 10px;
+    font-size: 20px;
+    font-family: sans-serif;
+}
+
+.option-group.hidden {
+    display: none;
+}
+
+img {
+    margin-right: 20px;
+}
+
+.submitbutton {
+    padding: 5px 25px;
+    border: 0;
+    border-radius: 5px;
+    font-size: 20px;
+    font-weight: 100;
+    margin-top: 20px;
+    text-transform: lowercase;
+    color: white;
+    background-color: black;
+    cursor: pointer;
+    outline: none;
+}
+
+.submitbutton:hover {
+    background-color: dimgray;
+}
+
+.option.remove {
+    float: right;
+    color: gray;
+    font-weight: 100;
+    cursor: pointer;
+}
+
+.option.remove:hover {
+    color: red;
+}
